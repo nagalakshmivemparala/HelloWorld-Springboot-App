@@ -23,7 +23,7 @@ pipeline {
                 set PATH=%JAVA_HOME%\\bin;%PATH%
                 mvn clean package
                 '''
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+                archiveArtifacts artifacts: '**/target/*.war', fingerprint: true
             }
         }
 
