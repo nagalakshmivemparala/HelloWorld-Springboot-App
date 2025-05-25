@@ -5,8 +5,6 @@ pipeline {
         AWS_REGION = 'us-west-2'
         REPO_NAME = 'springboot'
         AWS_ACCOUNT_ID = credentials('aws-account-id')  // AWS Account ID as Secret Text
-        // Set JAVA_HOME here if you want globally (optional)
-        // JAVA_HOME = 'C:\\Program Files\\Java\\jdk-17.0.4'
     }
 
     stages {
@@ -27,19 +25,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                bat 'docker build -t springboot .'
-            }
-        }
-
-        stage('Tag Docker Image') {
-            steps {
-                bat "docker tag springboot:latest %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/%REPO_NAME%:latest"
-            }
-        }
-
-        stage('Login to ECR') {
+        stage('Configure AWS CLI') {
             steps {
                 withCredentials([
                     usernamePassword(
@@ -52,16 +38,22 @@ pipeline {
                     aws configure set aws_access_key_id %AWS_ACCESS_KEY_ID%
                     aws configure set aws_secret_access_key %AWS_SECRET_ACCESS_KEY%
                     aws configure set region %AWS_REGION%
-
-                    FOR /F "tokens=*" %%i IN ('aws ecr get-login-password --region %AWS_REGION%') DO docker login --username AWS --password %%i %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com
                     """
                 }
             }
         }
 
-        stage('Push to ECR') {
+        stage('Deploy to EKS') {
             steps {
-                bat "docker push %AWS_ACCOUNT_ID%.dkr.ecr.%AWS_REGION%.amazonaws.com/%REPO_NAME%:latest"
+                withCredentials([
+                    file(credentialsId: 'eks-kubeconfig', variable: 'KUBECONFIG_FILE')
+                ]) {
+                    bat '''
+                    set KUBECONFIG=%KUBECONFIG_FILE%
+                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f k8s/service.yaml
+                    '''
+                }
             }
         }
     }
