@@ -5,6 +5,8 @@ pipeline {
         AWS_REGION = 'us-west-2'
         REPO_NAME = 'springboot'
         AWS_ACCOUNT_ID = credentials('aws-account-id')  // AWS Account ID as Secret Text
+        // Set JAVA_HOME here if you want globally (optional)
+        // JAVA_HOME = 'C:\\Program Files\\Java\\jdk-17.0.4'
     }
 
     stages {
@@ -16,7 +18,11 @@ pipeline {
 
         stage('Build with Maven') {
             steps {
-                bat 'mvn clean package'
+                bat '''
+                set JAVA_HOME=C:\\Program Files\\Java\\jdk-17.0.4
+                set PATH=%JAVA_HOME%\\bin;%PATH%
+                mvn clean package
+                '''
                 archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
             }
         }
