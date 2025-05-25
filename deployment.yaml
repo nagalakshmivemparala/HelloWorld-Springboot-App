@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpd  
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpd
+  template:
+    metadata:
+      labels:
+        app: httpd
+    spec:
+      containers:
+      - name: httpd
+        image: 491444571351.dkr.ecr.us-west-2.amazonaws.com/springboot:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: TITLE
+          value: "APACHE APP2"
+        livenessProbe:
+          httpGet:
+            path: /healthz  # Ensure your Apache server has a health check endpoint (you might need to create one)
+            port: 80
+          initialDelaySeconds: 10  # Delay before the probe starts
+          periodSeconds: 5  # How often to check the health
+          failureThreshold: 3  # Number of failures before considering the container unhealthy
+        readinessProbe:
+          httpGet:
+            path: /readiness  # You can create a readiness endpoint or use a simple status page
+            port: 80
+          initialDelaySeconds: 5  # Delay before the probe starts
+          periodSeconds: 5  # How often to check if the container is ready
+          failureThreshold: 3  # Number of failures before considering the container not ready
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpd  
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+  selector:
+    app: httpd
